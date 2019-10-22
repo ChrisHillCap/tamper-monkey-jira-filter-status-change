@@ -9,7 +9,27 @@
 // ==/UserScript==
 
 (function() {
-    const windowHref = window.location.href;
+     function addSubmitForm() {
+         var divElement = document.createElement("div")
+        const buttonForSubmitFilter = document.createElement("button");
+         buttonForSubmitFilter.innerHTML = "Return stats";
+        buttonForSubmitFilter.id = "return-stats-tamper-monkey";
+        const textBoxForFilterId    = document.createElement("input");
+        textBoxForFilterId.type = "text";
+        textBoxForFilterId.id = "filter-id-tamper-monkey";
+        const textBoxAmountOfRecordsToSearchForInFilter = document.createElement("input");
+        textBoxAmountOfRecordsToSearchForInFilter.type = "text";
+        textBoxAmountOfRecordsToSearchForInFilter.id = "amount-of-records-tamper-monkey";
+
+       buttonForSubmitFilter.addEventListener ("click", validateBeforeCallingApis , false);
+       document.getElementsByTagName("body")[0].appendChild(buttonForSubmitFilter);
+       document.getElementsByTagName("body")[0].appendChild(textBoxForFilterId);
+       document.getElementsByTagName("body")[0].appendChild(textBoxAmountOfRecordsToSearchForInFilter);
+    }
+    addSubmitForm();
+
+    const windowLocationJira = window.location.origin
+
     const urlParamFilterNumber = new URLSearchParams(window.location.search).get('filter');
 
     //not my func https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_sort_table_desc
@@ -49,6 +69,7 @@
 }
     'use strict';
 
+  function callApisWithFilterAndGetResults(filterId, amountOfRecords) {
 
     var leTable = document.createElement("table");
     var buttonForSort = document.createElement("button");
@@ -68,7 +89,7 @@
 
      async function getAllIssuesReturn() {
 
-         return fetch("https://jira.tools.tax.service.gov.uk/rest/api/2/search?jql=filter=" + urlParamFilterNumber +"&maxResults=1000").then(response => response.text()).then(text => {
+         return fetch(windowLocationJira + "/rest/api/2/search?jql=filter=" + filterId +"&maxResults=" + amountOfRecords).then(response => response.text()).then(text => {
         var i;
                var keys = [];
         const jsonDocument = JSON.parse(text);
@@ -88,7 +109,7 @@
     var countFoo;
     for (countFoo = 0; countFoo < issueKeys.length; countFoo++) {
 
-    fetch("https://jira.tools.tax.service.gov.uk/activity?maxResults=1000&streams=issue-key+IS+" + issueKeys[countFoo] + "&os_authType=basic&title=undefined&orderBy=Status").then(response => response.text()).then(text => {
+    fetch(windowLocationJira + "/activity?maxResults=1000&streams=issue-key+IS+" + issueKeys[countFoo] + "&os_authType=basic&title=undefined&orderBy=Status").then(response => response.text()).then(text => {
 
     var parser = new DOMParser();
     var xmlDocument = parser.parseFromString(text, "text/xml");
@@ -116,5 +137,26 @@
    })
         }
     });
+  }
+
+    function validateBeforeCallingApis() {
+       function validateString(stringToValidate) {
+             if(stringToValidate.includes(" ") || stringToValidate == "") {
+                 return false
+             } else {return true}
+        }
+
+        const filterTextBox = document.getElementById("filter-id-tamper-monkey");
+        const amountOfRecordsTextBox = document.getElementById("amount-of-records-tamper-monkey");
+        const amountOfRecordsTextBoxTrimmed = amountOfRecordsTextBox.value.trim();
+        const filterTextBoxTrimmed = filterTextBox.value.trim();
+
+        alert(filterTextBoxTrimmed);
+        if(!validateString(amountOfRecordsTextBoxTrimmed) || !validateString(filterTextBoxTrimmed)) {
+           alert("**Please ensure that: Filter field has no spaces in the ID** Please ensure that: Amount of records has a number in and has no spaces in it");
+           } else {
+             callApisWithFilterAndGetResults(filterTextBoxTrimmed, amountOfRecordsTextBoxTrimmed)
+           }
+    }
 
 })();
