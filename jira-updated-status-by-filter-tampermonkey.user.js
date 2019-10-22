@@ -2,19 +2,27 @@
 // @name         JIRA filter,all stories in progress
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  try to take over the world!
+// @description  basic script to add form elements to jira which takes filter id and amount of records and returns in progress date
 // @author       You
-// @match        https://*jira.tools.tax.service.gov.uk/issues/*filter*
+// @include      /https://jira\./
 // @grant        none
 // ==/UserScript==
 
 (function() {
      function addSubmitForm() {
          var divElement = document.createElement("div")
+
+         var labelForFilterId = document.createElement("label");
+         labelForFilterId.innerHTML = "Please enter a valid filter id for issues you wish to see the 'when set to in progress' timestamp'"
+         labelForFilterId.setAttribute("for","filter-id-tamper-monkey");
+
+          var labelForAmountOfIssuesToSearch = document.createElement("label");
+         labelForAmountOfIssuesToSearch.innerHTML = "Please enter the number of issues in the filter you wish to search in, Please be aware of how big your filter is. EVERY ISSUE makes a request to the Jira API. 4000 items in a filter is 4000 requests. "
+         labelForAmountOfIssuesToSearch.setAttribute("for","amount-of-records-tamper-monkey");
         const buttonForSubmitFilter = document.createElement("button");
          buttonForSubmitFilter.innerHTML = "Return stats";
         buttonForSubmitFilter.id = "return-stats-tamper-monkey";
-        const textBoxForFilterId    = document.createElement("input");
+        const textBoxForFilterId = document.createElement("input");
         textBoxForFilterId.type = "text";
         textBoxForFilterId.id = "filter-id-tamper-monkey";
         const textBoxAmountOfRecordsToSearchForInFilter = document.createElement("input");
@@ -22,9 +30,18 @@
         textBoxAmountOfRecordsToSearchForInFilter.id = "amount-of-records-tamper-monkey";
 
        buttonForSubmitFilter.addEventListener ("click", validateBeforeCallingApis , false);
-       document.getElementsByTagName("body")[0].appendChild(buttonForSubmitFilter);
-       document.getElementsByTagName("body")[0].appendChild(textBoxForFilterId);
-       document.getElementsByTagName("body")[0].appendChild(textBoxAmountOfRecordsToSearchForInFilter);
+         divElement.innerHTML += "<br>"
+         divElement.appendChild(labelForFilterId);
+         divElement.innerHTML += "<br>"
+         divElement.appendChild(textBoxForFilterId);
+         divElement.innerHTML += "<br>"
+         divElement.appendChild(labelForAmountOfIssuesToSearch);
+         divElement.innerHTML += "<br>"
+         divElement.appendChild(textBoxAmountOfRecordsToSearchForInFilter);
+         divElement.innerHTML += "<br>"
+         divElement.appendChild(buttonForSubmitFilter);
+       document.getElementById("page").appendChild(divElement);
+
     }
     addSubmitForm();
 
@@ -151,7 +168,6 @@
         const amountOfRecordsTextBoxTrimmed = amountOfRecordsTextBox.value.trim();
         const filterTextBoxTrimmed = filterTextBox.value.trim();
 
-        alert(filterTextBoxTrimmed);
         if(!validateString(amountOfRecordsTextBoxTrimmed) || !validateString(filterTextBoxTrimmed)) {
            alert("**Please ensure that: Filter field has no spaces in the ID** Please ensure that: Amount of records has a number in and has no spaces in it");
            } else {
