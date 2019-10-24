@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JIRA filter,all stories in progress
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      1
 // @description  basic script to add form elements to jira which takes filter id and amount of records and returns in progress date
 // @author       You
 // @include      /https://jira\./
@@ -160,8 +160,8 @@
             function extractTheTitle(entry) {
                 return entry.getElementsByTagName("title")[0].childNodes[0].nodeValue;
             }
-            function updateTable(status, updatedTimestamp, titleOfEntry, issueId) {
-                var row = leTable.insertRow(tableRowCount);
+            function rowReturn(status, updatedTimestamp, titleOfEntry, issueId) {
+                var row = document.createElement("TR");
                 var timestampCell = row.insertCell(0);
                 var titleCell = row.insertCell(1);
                 var statusChangedToCell = row.insertCell(2);
@@ -170,24 +170,20 @@
                 timestampCell.innerHTML = updatedTimestamp;
                 titleCell.innerHTML = titleOfEntry;
                 issueIDCell.innerHTML = issueId;
-                tableRowCount++;
-                return leTable;
+                return row;
             }
 
             async function fetchAndDoStuff(issueKey) {
                 return fetch(windowLocationJira + "/activity?maxResults=1000&streams=issue-key+IS+" + issueKey + "&os_authType=basic&title=undefined&orderBy=Status")
                     .then(response => [issueKey,response.text()])
                     .then(text => {
-                    console.log(text[0]);
-                    console.log(text[1]);
                     var parser = new DOMParser();
                     var xmlDocument = parser.parseFromString(text[1], "text/xml");
 
                     var activityEntries = xmlDocument.getElementsByTagName("entry");
 
-                    console.log(text[0]);
+                    var arrayOfRows = [];
                     for (var i = 0; i < activityEntries.length; i++) {
-
 
                         const category = extractTheCategory(activityEntries[i]);
                         const titleOfEntry = extractTheTitle(activityEntries[i]);
@@ -195,18 +191,30 @@
                         if(category != null) {
                             const termOfCategory = getTermAttribute(category)
                             if(listOfStatusesWeCareAbout.includes(termOfCategory)) {
-                                updateTable(termOfCategory, updatedTimestampOfEntry, titleOfEntry, text[0]);
+                                console.log(rowReturn(termOfCategory, updatedTimestampOfEntry, titleOfEntry, text[0]));
+                                arrayOfRows.push(rowReturn(termOfCategory, updatedTimestampOfEntry, titleOfEntry, text[0]));
                             }
                         }
                     }
+                    console.log(arrayOfRows.toString());
+                    //why is this blank???????????????????????????????????????????//
+                    return arrayOfRows;
 
                 })
             }
 
             Promise.all(issueKeys.map(issueKey => {
-                fetchAndDoStuff(issueKey);
-            })).then(() => {
-
+                return fetchAndDoStuff(issueKey);
+            })).then((arrayOfArrayOfRows) => {
+                var arrayFinal = [];
+                arrayOfArrayOfRows.forEach(array => {
+                                           console.log(array.toString());
+                                           arrayFinal = arrayFinal.concat(array)})
+                for (var i = 0;i < arrayFinal.length; i++) {
+                    console.log(arrayFinal[i]);
+                leTable.insertRow([i])
+                    leTable[i] = arrayFinal[i]
+                }
                 document.getElementsByTagName("body")[0].appendChild(buttonForSort);
                 alert("leTable" + leTable);
                 document.getElementsByTagName("body")[0].appendChild(leTable);
