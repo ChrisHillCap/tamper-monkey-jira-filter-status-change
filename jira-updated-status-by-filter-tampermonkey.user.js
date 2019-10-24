@@ -160,11 +160,23 @@
             function extractTheTitle(entry) {
                 return entry.getElementsByTagName("title")[0].childNodes[0].nodeValue;
             }
+            function updateTable(status, updatedTimestamp, titleOfEntry, issueId) {
+                var row = leTable.insertRow(tableRowCount);
+                var timestampCell = row.insertCell(0);
+                var titleCell = row.insertCell(1);
+                var statusChangedToCell = row.insertCell(2);
+                var issueIDCell = row.insertCell(3);
+                statusChangedToCell.innerHTML = status;
+                timestampCell.innerHTML = updatedTimestamp;
+                titleCell.innerHTML = titleOfEntry;
+                issueIDCell.innerHTML = issueId;
+                tableRowCount++;
+                return leTable;
+            }
 
-            for (var indexOfIssue = 0; indexOfIssue < issueKeys.length; indexOfIssue++) {
-
-                fetch(windowLocationJira + "/activity?maxResults=1000&streams=issue-key+IS+" + issueKeys[indexOfIssue] + "&os_authType=basic&title=undefined&orderBy=Status")
-                    .then(response => [issueKeys[indexOfIssue],response.text()])
+            async function fetchAndDoStuff(issueKey) {
+                return fetch(windowLocationJira + "/activity?maxResults=1000&streams=issue-key+IS+" + issueKey + "&os_authType=basic&title=undefined&orderBy=Status")
+                    .then(response => [issueKey,response.text()])
                     .then(text => {
                     console.log(text[0]);
                     console.log(text[1]);
@@ -173,20 +185,9 @@
 
                     var activityEntries = xmlDocument.getElementsByTagName("entry");
 
-console.log(text[0]);
+                    console.log(text[0]);
                     for (var i = 0; i < activityEntries.length; i++) {
-                        function updateTable(status, updatedTimestamp, titleOfEntry, issueId) {
-                            var row = leTable.insertRow(tableRowCount);
-                            var timestampCell = row.insertCell(0);
-                            var titleCell = row.insertCell(1);
-                            var statusChangedToCell = row.insertCell(2);
-                            var issueIDCell = row.insertCell(3);
-                            statusChangedToCell.innerHTML = status;
-                            timestampCell.innerHTML = updatedTimestamp;
-                            titleCell.innerHTML = titleOfEntry;
-                            issueIDCell.innerHTML = "foo";
-                            return leTable;
-                        }
+
 
                         const category = extractTheCategory(activityEntries[i]);
                         const titleOfEntry = extractTheTitle(activityEntries[i]);
@@ -197,15 +198,24 @@ console.log(text[0]);
                                 updateTable(termOfCategory, updatedTimestampOfEntry, titleOfEntry, text[0]);
                             }
                         }
-
                     }
-                    document.getElementsByTagName("body")[0].appendChild(buttonForSort);
-                    document.getElementsByTagName("body")[0].appendChild(leTable);
 
                 })
             }
-        });
+
+            Promise.all(issueKeys.map(issueKey => {
+                fetchAndDoStuff(issueKey);
+            })).then(() => {
+
+                document.getElementsByTagName("body")[0].appendChild(buttonForSort);
+                alert("leTable" + leTable);
+                document.getElementsByTagName("body")[0].appendChild(leTable);
+            })
+
+        })
     }
+
+
 
     function validateBeforeCallingApis() {
         function validateString(stringToValidate) {
