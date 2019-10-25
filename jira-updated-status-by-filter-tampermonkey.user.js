@@ -145,84 +145,84 @@
         issueIdHeader.innerHTML = "<b> Issue Id </b>";
 
         var tableRowCount = 1;
-
-        getAllIssuesReturn(filterId, amountOfRecords).then(issueKeys => {
-
-            function extractTheCategory(entry) {
-                return entry.getElementsByTagName("category")[0]
-            }
-            function getTermAttribute(entry) {
-                return entry.getAttribute("term");
-            }
-            function extractTheUpdatedTimestamp(entry) {
-                return entry.getElementsByTagName("updated")[0].childNodes[0].nodeValue;
-            }
-            function extractTheTitle(entry) {
-                return entry.getElementsByTagName("title")[0].childNodes[0].nodeValue;
-            }
-            function rowReturn(status, updatedTimestamp, titleOfEntry, issueId) {
-                var row = document.createElement("TR");
+        function extractTheCategory(entry) {
+            return entry.getElementsByTagName("category")[0]
+        }
+        function getTermAttribute(entry) {
+            return entry.getAttribute("term");
+        }
+        function extractTheUpdatedTimestamp(entry) {
+            return entry.getElementsByTagName("updated")[0].childNodes[0].nodeValue;
+        }
+        function extractTheTitle(entry) {
+            return entry.getElementsByTagName("title")[0].childNodes[0].nodeValue;
+        }
+        function tableReturnWithNewRows(arrayOfstatusUpdatedTimestampTitleOfEntryIssueId, table) {
+            arrayOfstatusUpdatedTimestampTitleOfEntryIssueId.forEach(arrayElement => {
+                var row = table.insertRow(table.length + 1);
                 var timestampCell = row.insertCell(0);
                 var titleCell = row.insertCell(1);
                 var statusChangedToCell = row.insertCell(2);
                 var issueIDCell = row.insertCell(3);
-                statusChangedToCell.innerHTML = status;
-                timestampCell.innerHTML = updatedTimestamp;
-                titleCell.innerHTML = titleOfEntry;
-                issueIDCell.innerHTML = issueId;
-                return row;
-            }
-
-            async function fetchAndDoStuff(issueKey) {
-                return fetch(windowLocationJira + "/activity?maxResults=1000&streams=issue-key+IS+" + issueKey + "&os_authType=basic&title=undefined&orderBy=Status")
-                    .then(response => [issueKey,response.text()])
-                    .then(text => {
-                    var parser = new DOMParser();
-                    var xmlDocument = parser.parseFromString(text[1], "text/xml");
-
-                    var activityEntries = xmlDocument.getElementsByTagName("entry");
-
-                    var arrayOfRows = [];
-                    for (var i = 0; i < activityEntries.length; i++) {
-
-                        const category = extractTheCategory(activityEntries[i]);
-                        const titleOfEntry = extractTheTitle(activityEntries[i]);
-                        const updatedTimestampOfEntry = extractTheUpdatedTimestamp(activityEntries[i]);
-                        if(category != null) {
-                            const termOfCategory = getTermAttribute(category)
-                            if(listOfStatusesWeCareAbout.includes(termOfCategory)) {
-                                console.log(rowReturn(termOfCategory, updatedTimestampOfEntry, titleOfEntry, text[0]));
-                                arrayOfRows.push(rowReturn(termOfCategory, updatedTimestampOfEntry, titleOfEntry, text[0]));
-                            }
-                        }
-                    }
-                    console.log(arrayOfRows.toString());
-                    //why is this blank???????????????????????????????????????????//
-                    return arrayOfRows;
-
-                })
-            }
-
-            Promise.all(issueKeys.map(issueKey => {
-                return fetchAndDoStuff(issueKey);
-            })).then((arrayOfArrayOfRows) => {
-                var arrayFinal = [];
-                arrayOfArrayOfRows.forEach(array => {
-                                           console.log(array.toString());
-                                           arrayFinal = arrayFinal.concat(array)})
-                for (var i = 0;i < arrayFinal.length; i++) {
-                    console.log(arrayFinal[i]);
-                leTable.insertRow([i])
-                    leTable[i] = arrayFinal[i]
-                }
-                document.getElementsByTagName("body")[0].appendChild(buttonForSort);
-                alert("leTable" + leTable);
-                document.getElementsByTagName("body")[0].appendChild(leTable);
+                statusChangedToCell.innerHTML = arrayOfstatusUpdatedTimestampTitleOfEntryIssueId[0];
+                timestampCell.innerHTML = arrayOfstatusUpdatedTimestampTitleOfEntryIssueId[1];
+                titleCell.innerHTML = arrayOfstatusUpdatedTimestampTitleOfEntryIssueId[2];
+                issueIDCell.innerHTML = arrayOfstatusUpdatedTimestampTitleOfEntryIssueId[3];
             })
+            return table;
+        }
 
+        async function fetchFromActivityApi(issueKey) {
+            return fetch(windowLocationJira + "/activity?maxResults=1000&streams=issue-key+IS+" + issueKey + "&os_authType=basic&title=undefined&orderBy=Status")
+        }
+        function takesIssueAndResponseAndReturnsArrayOfRows(issue, textOfResponse) {
+
+            var parser = new DOMParser();
+            console.log(textOfResponse, textOfResponse.text(), "xccvxcvxvcxv");
+            var xmlDocument = parser.parseFromString(textOfResponse.text(), "text/xml");
+
+            var activityEntries = xmlDocument.getElementsByTagName("entry");
+
+            var arrayOfRows = [];
+            //console.log(activityEntries);
+            for (var i = 0; i < activityEntries.length; i++) {
+                const category = extractTheCategory(activityEntries[i]);
+                const titleOfEntry = extractTheTitle(activityEntries[i]);
+                const updatedTimestampOfEntry = extractTheUpdatedTimestamp(activityEntries[i]);
+                console.log(category);
+                if(category != null) {
+                    const termOfCategory = getTermAttribute(category)
+                    if(!listOfStatusesWeCareAbout.includes(termOfCategory)) {
+
+                        console.log([termOfCategory, updatedTimestampOfEntry, titleOfEntry, issue]);
+                        arrayOfRows.push([termOfCategory, updatedTimestampOfEntry, titleOfEntry, issue]);
+                        console.log(arrayOfRows);
+                    }
+                }
+            }
+            return arrayOfRows;
+        }
+
+
+        const arrayOfPromisesWhichContainArrayOfRows = getAllIssuesReturn(filterId, amountOfRecords).then(issueKeys =>
+
+                                                                                                          issueKeys.map(issueKey =>
+                                                                                                             fetchFromActivityApi(issueKey).then(response => {
+            console.log(typeof(response), response);
+                                                                                                                                                 return takesIssueAndResponseAndReturnsArrayOfRows(issueKey, response)})
+                                                                                                                                    ));
+
+        arrayOfPromisesWhichContainArrayOfRows.then(arrayOfPromises => {
+            console.log(arrayOfPromises);
+                                                                 Promise.all(arrayOfPromises).then(arrayOfRows =>
+                                                                                      arrayOfRows.map(array =>
+                                                                                 tableReturnWithNewRows(array, leTable)))}).then(a => {
+            document.getElementsByTagName("body")[0].appendChild(buttonForSort);
+            document.getElementsByTagName("body")[0].appendChild(leTable);
         })
-    }
 
+
+    }
 
 
     function validateBeforeCallingApis() {
